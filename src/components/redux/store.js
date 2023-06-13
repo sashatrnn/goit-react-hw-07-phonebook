@@ -1,39 +1,39 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit';
-import storage from 'redux-persist/lib/storage';
+import { configureStore, createAsyncThunk } from '@reduxjs/toolkit';
 import { contactReducer } from './contactSlice';
 import { filterReducer } from './filterSlice';
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from 'redux-persist';
+import { fetchContacts, addContact, deleteContact } from './operations';
 
-const persistConfig = {
-  key: 'root',
-  storage,
-};
+export const getContactsThunk = createAsyncThunk(
+  'contacts/fetchAll',
+  async (_, thunkAPI) => {
+    try {
+      const data = await fetchContacts();
+      return data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(error.message);
+    }
+  }
+);
 
-const rootReducer = combineReducers({
-  contacts: contactReducer,
-  filter: filterReducer,
-});
+export const addContactThunk = createAsyncThunk(
+  'contacts/addContact',
+  async contact => {
+    const data = await addContact(contact);
+    return data;
+  }
+);
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
+export const deleteContactThunk = createAsyncThunk(
+  'contacts/deleteContact',
+  async id => {
+    const data = await deleteContact(id);
+    return data;
+  }
+);
 
 export const store = configureStore({
-  reducer: persistedReducer,
-
-  middleware: getDefaultMiddleware =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
+  reducer: {
+    contacts: contactReducer,
+    filter: filterReducer,
+  },
 });
-
-export const persistor = persistStore(store);

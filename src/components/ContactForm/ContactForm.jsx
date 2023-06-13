@@ -1,47 +1,35 @@
-import { useState } from 'react';
+import { useLocalStorage } from 'components/App';
 import css from './ContactForm.module.css';
 import { useDispatch, useSelector } from 'react-redux';
-import { addContact } from 'components/redux/contactSlice';
-import { getContactList } from 'components/redux/contactSlice';
+import { addContactThunk } from 'components/redux/store';
 import Notiflix from 'notiflix';
 
 const ContactForm = () => {
   const dispatch = useDispatch();
-  const contacts = useSelector(getContactList);
+  const contacts = useSelector(state => state.contacts.items);
+  const names = contacts.map(obj => obj.name);
 
-  const [name, setName] = useState('');
-  const [number, setNumber] = useState('');
+  const [name, setName] = useLocalStorage('name', ' ');
+  const [phone, setPhone] = useLocalStorage('phone', ' ');
 
-  const handleChange = event => {
-    const { name, value } = event.target;
-
-    switch (name) {
-      case 'name':
-        setName(value);
-        break;
-
-      case 'number':
-        setNumber(value);
-        break;
-
-      default:
-        break;
-    }
+  const handleChange = e => {
+    const { name, value } = e.target;
+    name === 'name' ? setName(value) : setPhone(value);
   };
 
-  const handleSubmit = event => {
-    event.preventDefault();
-
-    const formName = event.currentTarget.name.value;
-    const formNumber = event.currentTarget.number.value;
-
-    if (contacts.some(({ name }) => name === formName)) {
-      return Notiflix.Notify.failure(`${name} is already in contacts`);
+  const handleSubmit = evt => {
+    evt.preventDefault();
+    const form = evt.target;
+    const name = form.elements.name.value;
+    const phone = form.elements.phone.value;
+    const newContact = { name, phone };
+    if (!names.includes(name)) {
+      dispatch(addContactThunk(newContact));
+    } else {
+      Notiflix.Notify.failure(`${name} is already in contacts`);
     }
-
-    dispatch(addContact(formName, formNumber));
     setName('');
-    setNumber('');
+    setPhone('');
   };
 
   return (
@@ -65,19 +53,18 @@ const ContactForm = () => {
         <input
           className={css.input}
           type="tel"
-          placeholder="xxx-xx-xx"
-          name="number"
-          value={number}
-          pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
-          title="Phone number must be digits and can contain spaces, dashes, parentheses and can start with +"
+          placeholder="xxx-xxx-xxxx"
+          name="phone"
+          value={phone}
+          pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}"
+          title="Phone number must be in the format xxx-xxx-xxxx"
           required
           onChange={handleChange}
         />
       </div>
 
       <button className={css.formBtn} type="submit">
-        {' '}
-        Add Contact{' '}
+        Add Contact
       </button>
     </form>
   );
